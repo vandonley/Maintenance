@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><Policy ID="{eb31a591-3e22-46b7-a6b4-671d1fd98a3a}" Name="Format CSC on next reboot" Description="Rm9ybWF0IHRoZSBvZmZsaW5lIGZpbGUgY2FjaGUgb24gbmV4dCByZWJvb3QgZm9yIFdpbmRvd3MgNyBhbmQgbGF0ZXIuDQoNCkNyZWF0ZWQ6ICBWYW4gRG9ubGV5ICAgIDEyLzAxLzIwMTYNClVwZGF0ZWQ6ICBWYW4gRG9ubGV5ICAgIDEyLzAxLzIwMTY=" Version="1.8.9.0" RemoteCategory="0" ExecutionType="Local" PS3ObjectCount="0" VariableSuffix="9999">
+  <Object ID="{c06932f7-c27c-4b59-9ced-d00cdb6d5522}" Type="{B6FA6D8B-EEAA-47A6-8463-7F9A4F5BBB6E}" Data="&lt;xml /&gt;" />
+  <LinkManager xmlns:i="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://schemas.datacontract.org/2004/07/PolicyExecutor.Model">
+    <hashset xmlns:d2p1="http://schemas.datacontract.org/2004/07/System" />
+  </LinkManager>
+  <Activity mc:Ignorable="sads sap" x:Class="Automation Manager" xmlns="http://schemas.microsoft.com/netfx/2009/xaml/activities" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:mva="clr-namespace:Microsoft.VisualBasic.Activities;assembly=System.Activities" xmlns:p="clr-namespace:PolicyExecutor;assembly=PolicyExecutionEngine" xmlns:sads="http://schemas.microsoft.com/netfx/2010/xaml/activities/debugger" xmlns:sap="http://schemas.microsoft.com/netfx/2009/xaml/activities/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <x:Members>
+      <x:Property Name="PolicyGUID" Type="InArgument(x:String)" />
+    </x:Members>
+    <sap:VirtualizedContainerService.HintSize>474,370</sap:VirtualizedContainerService.HintSize>
+    <mva:VisualBasic.Settings>Assembly references and imported namespaces serialized as XML namespaces</mva:VisualBasic.Settings>
+    <p:PolicySequence DisplayName="Script" sap:VirtualizedContainerService.HintSize="434,330" mva:VisualBasic.Settings="Assembly references and imported namespaces serialized as XML namespaces">
+      <p:PolicySequence.Activities>
+        <p:CreateRegistryKey NewKey_Item="{x:Null}" NewKey_ItemProp="{x:Null}" PropertyName_Item="{x:Null}" PropertyName_ItemProp="{x:Null}" Value_Item="{x:Null}" Value_ItemProp="{x:Null}" AssemblyName="PolicyExecutionEngine, Version=1.8.9.0, Culture=neutral, PublicKeyToken=null" BaseKey="HKLM" DisplayName="Create Registry Key" sap:VirtualizedContainerService.HintSize="414,173" IgnoreErrors="False" Moniker="b8f8e375-9ecf-47a8-a563-14bbbf602b1c" NewKey="System\CurrentControlSet\Services\CSC\Parameters" NewKey_DisplayArg="System\CurrentControlSet\Services\CSC\Parameters" PropType="DWord" PropertyName="FormatDatabase" PropertyName_DisplayArg="FormatDatabase" Result="[CreateRegistryKey_Result_0]" ScriptDirectory="Unused" TypeName="CreateRegistryKey" Value="1" Value_DisplayArg="1" m_bTextLinkChange="False" />
+      </p:PolicySequence.Activities>
+      <p:PolicySequence.Variables>
+        <Variable x:TypeArguments="x:Double" Name="CreateRegistryKey_Result_0" />
+      </p:PolicySequence.Variables>
+    </p:PolicySequence>
+  </Activity>
+</Policy>
