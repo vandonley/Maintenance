@@ -4,7 +4,7 @@ Automate running Disk Cleanup with all
 options enabled.
 Parsec Computer Corp.
 Created:  Van Donley - 04/14/2017
-Last Updated:  Van Donely - 04/14/2017
+Last Updated:  Van Donely - 04/17/2017
 --------------------------
 #>
 
@@ -39,8 +39,7 @@ $subkeys      = Get-ChildItem -Path $strKeyPath -Name
     try
     {
         Start-Process cleanmgr.exe -ArgumentList "/sagerun:42" -Wait -NoNewWindow `
-            -ErrorAction SilentlyContinue -WarningAction SilentlyContinue -ErrorVariable $Return.CleanMgrError `
-             -InformationVariable $Return.CleanMgrInfo
+            -ErrorAction SilentlyContinue -WarningAction SilentlyContinue -ErrorVariable $Return.CleanMgrError
 
         $Return.RunCleanup = "Success"
     }
