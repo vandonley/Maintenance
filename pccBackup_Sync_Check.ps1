@@ -23,7 +23,6 @@
 #>
   
 Param(
-
     # Hostname or IP address of backup target
     [Parameter(Mandatory=$True,Position=1)]
     [string]
@@ -84,7 +83,6 @@ try {
             $Return.Nuget = $NuGet
             }
     }
-
     catch [EXCEPTION] {
         $_.Exception | Format-List -Force
     }
@@ -107,7 +105,6 @@ try {
             $Return.Repository = $PSGallery | Select-Object Name,Registered,InstallationPolicy
             }
     }
-
     catch [EXCEPTION] {
         $_.Exception | Format-List -Force
         }
@@ -121,7 +118,7 @@ try {
         }
     else {
         $Return.SSH = $SSH  | Select-Object Name,Version
-    }
+        }
     }
     catch  [EXCEPTION] {
         $_.Exception | Format-List -Force
@@ -151,10 +148,10 @@ try {
     }
     else {
         $Return.Credential = "Secure credential creation succeeded"
-    }
-    }
-catch {
-    $_.Exception | Format-List -Force
+        }
+        }
+    catch {
+        $_.Exception | Format-List -Force
     }
 
 # Create SFTP connection
@@ -166,8 +163,7 @@ try {
     }
     else {
         $Return.SFTPSession = "SFTP connection succeeded"
-    }
-
+        }
     }
     catch {
         $_.Exception | Format-List -Force
@@ -205,7 +201,7 @@ _________________________________
  
 
 "
-$Return | Format-List -Force
+    $Return | Format-List -Force
     }
     else {
         $Error.Clear()
@@ -214,8 +210,8 @@ $Return | Format-List -Force
         $Error.Add($ErrorString)
         Write-Error -Exception $ErrorString -ErrorId 1001 -Message $ErrMessage
         Exit 1001
+        }
     }
-}
-catch {
-    $_.Exception | Format-List -Force
-}
+    catch {
+        $_.Exception | Format-List -Force
+    }
