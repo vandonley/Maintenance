@@ -26,12 +26,12 @@ Param(
     # Hostname or IP address of backup target
     [Parameter(Mandatory=$True,Position=1)]
     [string]
-    $Host,
+    $sftpHost,
 
     # Backup target username
     [Parameter(Mandatory=$True,Position=2)]
     [string]
-    $User,
+    $sftpUser,
 
     # Backup target password
     [Parameter(Mandatory=$True,Position=3)]
@@ -39,26 +39,26 @@ Param(
 
     # Backup target port for SFTP (Default is 22)
     [Parameter()]
-    [int32]$Port = '22',
+    [int32]$sftpPort = '22',
 
     # Path to backup folder (Defaults to '.' and checks entire host recursivly)
     [Parameter()]
-    [string]$Path = '.',
+    [string]$sftpPath = ".",
 
     # Backup partition names to look for. Defaults to C_VOL. Enter multiples as an array using commas enclosed in a set of double quotes, ie. "System,C_VOL,D_VOL"
     [Parameter()]
     [string[]]
-    $Volumes = 'C_VOL',
+    $sftpVolumes = 'C_VOL',
 
     # Minimum count of each volume to look for. Default is 1
     [Parameter()]
     [int16]
-    $Minimum = '1',
+    $sftpMinimum = '1',
 
     # Number of days to check history. Default is 2
     [Parameter()]
     [int16]
-    $Days = '2',
+    $sftpDays = '2',
 
     # A parameter always supplied by MAXfocus. We MUST accept it.
     [Parameter()]
@@ -67,16 +67,17 @@ Param(
 )
 
 # Force the script to output something to STDOUT, else errors may cause script timeout.
-Output-Host " "
+Write-Host " "
 
-# Create array for troubleshooting and output
+# Create array for troubleshooting and output and create error counter
 [hashtable]$Return = @{}
+[int16]$FailCount = 0
 
 # Check if NuGet is registered as a package provider and install it if it is not
 try {
     $NuGet = Get-PackageProvider -Name NuGet -WarningAction Continue -ErrorAction Continue
-        if (-not $NuGet) {
-            Output-Host 'NuGet not installed - Fixing'
+        if (! $NuGet) {
+            Write-Host 'NuGet not installed - Fixing'
             $Return.NuGet = Install-PackageProvider -Name NuGet -Force -WarningAction Continue -ErrorAction Continue -Verbose
             }
         else {
@@ -85,35 +86,37 @@ try {
     }
     catch [EXCEPTION] {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
     }
 
 # Check if PSGallery is a repository location and that it is trusted to make installs easier
 try {
     $Repository = Get-PSRepository -Name PSGallery -WarningAction Continue -ErrorAction Continue
-        if (-not $Repository) {
-            Output-Host 'PSGallery not installed - Fixing'
+        if (! $Repository) {
+            Write-Host 'PSGallery not installed - Fixing'
             $Return.Repository = Register-PSRepository -Name PSGallery -SourceLocation https://www.powershellgallery.com/api/v2/ -PublishLocation `
              https://www.powershellgallery.com/api/v2/package/ -ScriptSourceLocation https://www.powershellgallery.com/api/v2/items/psscript/ `
              -ScriptPublishLocation https://www.powershellgallery.com/api/v2/package/ -InstallationPolicy Trusted -PackageManagementProvider NuGet `
              -WarningAction Continue -ErrorAction Continue -Verbose
             }
-        elseif (-not $Repository.InstallationPolicy -eq "Trusted") {
-            Output-Host 'PSGallery not trusted - Fixing'
+        elseif ($Repository.InstallationPolicy -eq "Untrusted") {
+            Write-Host 'PSGallery not trusted - Fixing'
             $Return.Repository = Set-PSRepository -Name PSGallery -InstallationPolicy Trusted -WarningAction Continue -ErrorAction Continue -Verbose
             }
         else {
-            $Return.Repository = $PSGallery | Select-Object Name,Registered,InstallationPolicy
+            $Return.Repository = "PSGallery installed and trusted"
             }
     }
     catch [EXCEPTION] {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
         }
 
 # Check if Posh-SSH module is installed
 try {
     $SSH = Get-InstalledModule -Name Posh-SSH
-        if (-not $SSH) {
-            Output-Host 'Posh-SSH not installed - Fixing'
+        if (! $SSH) {
+            Write-Host 'Posh-SSH not installed - Fixing'
             $SSH = Find-Module -Name Posh-SSH -WarningAction Continue -ErrorAction Continue | Install-Module -Force -WarningAction Continue -ErrorAction Continue -Verbose
         }
     else {
@@ -122,14 +125,16 @@ try {
     }
     catch  [EXCEPTION] {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
         }
 
 # Import Posh-SSH module
 try {
     Import-Module -Name Posh-SSH -Force -WarningAction Continue -ErrorAction Continue
     $PoshSSH = Get-Module -Name Posh-SSH -WarningAction Continue -ErrorAction Continue
-    if (-not $PoshSSH) {
+    if (! $PoshSSH) {
         $Return.PoshSSH = "Posh-SSH module import failed"
+        $FailCount = $FailCount + 1
     }
     else {
         $Return.PoshSSH = "Posh-SSH module imported successfully"
@@ -137,14 +142,16 @@ try {
     }
     catch {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
     }
 
 # Create credential from plain-text username and password
 try {
     $SecurePass = ConvertTo-SecureString $Password -AsPlainText -Force -WarningAction Continue -ErrorAction Continue
-    $Cred = New-Object System.Management.Automation.PSCredential($User,$SecurePass) -WarningAction Continue -ErrorAction Continue
-    if (-not $Cred) {
+    $Cred = New-Object System.Management.Automation.PSCredential($sftpUser,$SecurePass) -WarningAction Continue -ErrorAction Continue
+    if (! $Cred) {
         $Return.Credential = "Secure credental creation failed"
+        $FailCount = $FailCount + 1
     }
     else {
         $Return.Credential = "Secure credential creation succeeded"
@@ -152,14 +159,16 @@ try {
         }
     catch {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
     }
 
 # Create SFTP connection
 try {
-    New-SFTPSession -ComputerName $Host -Credential $Cred -AcceptKey -Force -Port $Port -WarningAction Continue -ErrorAction Continue
-    $SFTPSession = Get-SFTPSession -SessionId * -WarningAction Continue -ErrorAction Continue
-    if (-not $SFTPSession) {
+    New-SFTPSession -ComputerName $sftpHost -Credential $Cred -AcceptKey -Port $sftpPort  -WarningAction Continue -ErrorAction Continue > $Return.ConnectionResult
+    $SFTPSession = Get-SFTPSession -PipelineVariable SessionId -WarningAction Continue -ErrorAction Continue | Where-Object {$_.Host -eq $sftpHost -and $_.Connected -eq $True}
+    if (! $SFTPSession) {
         $Return.SFTPSession = "SFTP connection failed"
+        $FailCount = $FailCount + 1
     }
     else {
         $Return.SFTPSession = "SFTP connection succeeded"
@@ -167,39 +176,40 @@ try {
     }
     catch {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
     }
 
 # Get file list and check that correct number of files are present
 try {
-    [int16]$FailCount = 0
-    foreach ($Volume in $Volumes) {
-        $BackupCheck = Get-SFTPChildItem -SessionId $SFTPSession.SessionId -Path $Path -Recursive -WarningAction Continue -ErrorAction Continue | `
-         Where-Object {($_.FullName -like '*.spi') -and ($_.FullName -like '*$Volume*') -and ($_.LastWriteTime -ge (Get-Date).AddDays(-$Days)) }
-        if (-not $BackupCheck.count -ge $Minimum ) {
-            Output-Host "$Volume backup file sync check failed or minimum number of files not met"
-            $FailCount = $FailCount +1
+        foreach ($sftpVolume in $sftpVolumes) {
+        $BackupCheck = Get-SFTPChildItem -SessionId $SFTPSession.SessionId -Path $sftpPath -Recursive -WarningAction Continue -ErrorAction Continue | `
+         Where-Object {($_.FullName -like "*.spi") -and ($_.FullName -like "*$sftpVolume*") -and ($_.LastWriteTime -ge (Get-Date).AddDays(-$sftpDays)) }
+        if ($BackupCheck.count -lt $sftpMinimum ) {
+            Write-Host "$sftpVolume backup file sync check failed or minimum number of files not met"
+            $FailCount = $FailCount + 1
         } 
         else {
-            Output-Host "$Volume backup file sync check succeeded"
+            Write-Host "$sftpVolume backup file sync check succeeded"
         }
     }
     }
     catch {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
     }
 
 # Cleanup and report success or failure
 try {
-    Remove-SFTPSession -SessionId *
+    $SFTPSession | Remove-SFTPSession >$Return.SessionCleanup
     if ($FailCount -eq 0) {
-        Output-Host " 
+        Write-Host " 
 _________________________________
+ 
 All backup volumes passed check
 
 Troubleshooting info below
 _________________________________
  
-
 "
     $Return | Format-List -Force
     }
@@ -214,4 +224,5 @@ _________________________________
     }
     catch {
         $_.Exception | Format-List -Force
+        $FailCount = $FailCount + 1
     }
