@@ -9,9 +9,9 @@
 .EXAMPLE
    pccCheck-BackupSync my.bdr.com admin MyPassword 
 .EXAMPLE
-   pccCheck-BackupSync -Host my.bdr.com -User admin -Password MyPassword 
+   pccCheck-BackupSync -sftpHost my.bdr.com -sftpUser admin -Password MyPassword 
 .EXAMPLE
-   pccCheck-BackupSync -Host 10.10.10.10 -User admin -Password MyPassword -Port 22 -Path /mnt/array1/shadowprotect/ServerName -Volumes "System,C_VOL,D_VOL" -Minimum 1 -Days 2
+   pccCheck-BackupSync -sftpHost 10.10.10.10 -sftpUser admin -Password MyPassword -sftpPort 22 -sftpPath /mnt/array1/shadowprotect/ServerName -sftpVolumes "System,C_VOL,D_VOL" -sftpMinimum 1 -sftpDays 2
 .OUTPUTS
    Filenames and dates
 .LINK
@@ -41,7 +41,7 @@ Param(
     [Parameter()]
     [int32]$sftpPort = '22',
 
-    # Path to backup folder (Defaults to '.' and checks entire host recursivly)
+    # Path to backup folder (Defaults to '.' and checks entire host recursively)
     [Parameter()]
     [string]$sftpPath = ".",
 
