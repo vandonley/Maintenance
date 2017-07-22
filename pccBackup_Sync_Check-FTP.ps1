@@ -1,21 +1,21 @@
 <#
 .Synopsis
-   Uses Posh-SSH module to check that backup files are syncing to a remote host
+   Uses PSFTP module to check that backup files are syncing to a remote host
    and trigger an alert in MaxRM if it fails.
 .DESCRIPTION
    The script is to be uploaded to your dashboard account as a user script.
    It can run both as a script check and as a scheduled task.
    
 .EXAMPLE
-   pccBackup_Sync_Check-SFTP my.bdr.com admin MyPassword 
+   pccBackup_Sync_Check-FTP my.bdr.com admin MyPassword 
 .EXAMPLE
-   pccBackup_Sync_Check-SFTP -sftpHost my.bdr.com -sftpUser admin -Password MyPassword 
+   pccBackup_Sync_Check-FTP -ftpHost my.bdr.com -ftpUser admin -Password MyPassword 
 .EXAMPLE
-   pccBackup_Sync_Check-SFTP -sftpHost 10.10.10.10 -sftpUser admin -Password MyPassword -sftpPort 22 -sftpPath /mnt/array1/shadowprotect/ServerName -sftpVolumes "System,C_VOL,D_VOL" -sftpMinimum 1 -sftpDays 2
+   pccBackup_Sync_Check-FTP -ftpHost 10.10.10.10 -ftpUser admin -Password MyPassword -ftpPath /mnt/array1/shadowprotect/ServerName -ftpVolumes "System,C_VOL,D_VOL" -ftpMinimum 1 -ftpDays 2
 .OUTPUTS
    Filenames and dates
 .LINK
-   https://github.com/darkoperator/Posh-SSH
+   https://gallery.technet.microsoft.com/scriptcenter/PowerShell-FTP-Client-db6fe0cb
 .EMAIL
    VanD@ParsecComputer.com
 .VERSION
@@ -26,39 +26,35 @@ Param(
     # Hostname or IP address of backup target
     [Parameter(Mandatory=$True,Position=1)]
     [string]
-    $sftpHost,
+    $ftpHost,
 
     # Backup target username
     [Parameter(Mandatory=$True,Position=2)]
     [string]
-    $sftpUser,
+    $ftpUser,
 
     # Backup target password
     [Parameter(Mandatory=$True,Position=3)]
     [string]$Password,
 
-    # Backup target port for SFTP (Default is 22)
-    [Parameter()]
-    [int32]$sftpPort = '22',
-
     # Path to backup folder (Defaults to '.' and checks entire host recursively)
     [Parameter()]
-    [string]$sftpPath = ".",
+    [string]$ftpPath = ".",
 
     # Backup partition names to look for. Defaults to C_VOL. Enter multiples as an array using commas enclosed in a set of double quotes, ie. "System,C_VOL,D_VOL"
     [Parameter()]
     [string[]]
-    $sftpVolumes = 'C_VOL',
+    $ftpVolumes = 'C_VOL',
 
     # Minimum count of each volume to look for. Default is 1
     [Parameter()]
     [int16]
-    $sftpMinimum = '1',
+    $ftpMinimum = '1',
 
     # Number of days to check history. Default is 2
     [Parameter()]
     [int16]
-    $sftpDays = '2',
+    $ftpDays = '2',
 
     # A parameter always supplied by MAXfocus. We MUST accept it.
     [Parameter()]
@@ -75,7 +71,7 @@ Write-Host " "
 
 # Check if NuGet is registered as a package provider and install it if it is not
 try {
-    $NuGet = Get-PackageProvider | Where-Object Name -EQ NuGet
+    $NuGet = Get-PackageProvider -WarningAction Continue -ErrorAction Continue | Where-Object Name -EQ NuGet
         if (! $NuGet) {
             Write-Host 'NuGet not installed - Fixing'
             $Return.NuGet = Install-PackageProvider -Name NuGet -Force -WarningAction Continue -ErrorAction Continue -Verbose
@@ -91,7 +87,7 @@ try {
 
 # Check if PSGallery is a repository location and that it is trusted to make installs easier
 try {
-    $Repository = Get-PSRepository | Where-Object Name -EQ PSGallery
+    $Repository = Get-PSRepository -WarningAction Continue -ErrorAction Continue | Where-Object Name -EQ PSGallery
         if (! $Repository) {
             Write-Host 'PSGallery not installed - Fixing'
             $Return.Repository = Register-PSRepository -Name PSGallery -SourceLocation https://www.powershellgallery.com/api/v2/ -PublishLocation `
@@ -112,15 +108,15 @@ try {
         $FailCount = $FailCount + 1
         }
 
-# Check if Posh-SSH module is installed
+# Check if PSFTP module is installed
 try {
-    $SSH = Get-InstalledModule | Where-Object Name -EQ Posh-SSH
-        if (! $SSH) {
-            Write-Host 'Posh-SSH not installed - Fixing'
-            $SSH = Find-Module -Name Posh-SSH -WarningAction Continue -ErrorAction Continue | Install-Module -Force -WarningAction Continue -ErrorAction Continue -Verbose
+    $FTP = Get-InstalledModule | Where-Object Name -EQ PSFTP
+        if (! $FTP) {
+            Write-Host 'PSFTP not installed - Fixing'
+            $FTP = Find-Module -Name PSFTP -WarningAction Continue -ErrorAction Continue | Install-Module -Force -WarningAction Continue -ErrorAction Continue -Verbose
         }
     else {
-        $Return.SSH = $SSH  | Select-Object Name,Version
+        $Return.FTP = $FTP  | Select-Object Name,Version
         }
     }
     catch  [EXCEPTION] {
@@ -128,16 +124,16 @@ try {
         $FailCount = $FailCount + 1
         }
 
-# Import Posh-SSH module
+# Import PSFTP module
 try {
-    Import-Module -Name Posh-SSH -Force -WarningAction Continue -ErrorAction Continue
-    $PoshSSH = Get-Module -Name Posh-SSH -WarningAction Continue -ErrorAction Continue
-    if (! $PoshSSH) {
-        $Return.PoshSSH = "Posh-SSH module import failed"
+    Import-Module -Name PSFTP -Force -WarningAction Continue -ErrorAction Continue
+    $PoshFTP = Get-Module | Where-Object Name -EQ PSFTP
+    if (! $PoshFTP) {
+        $Return.PoshFTP = "PSFTP module import failed"
         $FailCount = $FailCount + 1
     }
     else {
-        $Return.PoshSSH = "Posh-SSH module imported successfully"
+        $Return.PoshFTP = "PSFTP module imported successfully"
     }
     }
     catch {
@@ -148,7 +144,7 @@ try {
 # Create credential from plain-text username and password
 try {
     $SecurePass = ConvertTo-SecureString $Password -AsPlainText -Force -WarningAction Continue -ErrorAction Continue
-    $Cred = New-Object System.Management.Automation.PSCredential($sftpUser,$SecurePass) -WarningAction Continue -ErrorAction Continue
+    $Cred = New-Object System.Management.Automation.PSCredential($ftpUser,$SecurePass) -WarningAction Continue -ErrorAction Continue
     if (! $Cred) {
         $Return.Credential = "Secure credental creation failed"
         $FailCount = $FailCount + 1
@@ -162,16 +158,16 @@ try {
         $FailCount = $FailCount + 1
     }
 
-# Create SFTP connection
+# Create FTP connection
 try {
-    New-SFTPSession -ComputerName $sftpHost -Credential $Cred -AcceptKey -Port $sftpPort  -WarningAction Continue -ErrorAction Continue > $Return.ConnectionResult
-    $SFTPSession = Get-SFTPSession -PipelineVariable SessionId -WarningAction Continue -ErrorAction Continue | Where-Object {$_.Host -eq $sftpHost -and $_.Connected -eq $True}
-    if (! $SFTPSession) {
-        $Return.SFTPSession = "SFTP connection failed"
+    Set-FTPConnection -Credentials $Cred -Server $ftpHost -UsePassive -Session BackupCheck -WarningAction Continue -ErrorAction Continue > $Return.ConnectionResult
+    $FTPConnection = Get-FTPConnection -Session BackupCheck -WarningAction Continue -ErrorAction Continue
+    if (! $FTPConnection) {
+        $Return.FTPConnection = "FTP connection failed"
         $FailCount = $FailCount + 1
     }
     else {
-        $Return.SFTPSession = "SFTP connection succeeded"
+        $Return.FTPConnection = "FTP connection succeeded"
         }
     }
     catch {
@@ -181,15 +177,15 @@ try {
 
 # Get file list and check that correct number of files are present
 try {
-        foreach ($sftpVolume in $sftpVolumes) {
-        $BackupCheck = Get-SFTPChildItem -SessionId $SFTPSession.SessionId -Path $sftpPath -Recursive -WarningAction Continue -ErrorAction Continue | `
-         Where-Object {($_.FullName -like "*.spi") -and ($_.FullName -like "*$sftpVolume*") -and ($_.LastWriteTime -ge (Get-Date).AddDays(-$sftpDays)) }
-        if ($BackupCheck.count -lt $sftpMinimum ) {
-            Write-Host "$sftpVolume backup file sync check failed or minimum number of files not met"
+        foreach ($ftpVolume in $ftpVolumes) {
+        $BackupCheck = Get-FTPChildItem -Session $FTPConnection.Session -Path $ftpPath -Recurse -WarningAction Continue -ErrorAction Continue | `
+         Where-Object {($_.Name -like "*.spi") -and ($_.Name -like "*$ftpVolume*") -and ($_.ModifiedDate -ge (Get-Date).AddDays(-$ftpDays)) }
+        if ($BackupCheck.count -lt $ftpMinimum ) {
+            Write-Host "$ftpVolume backup file sync check failed or minimum number of files not met"
             $FailCount = $FailCount + 1
         } 
         else {
-            Write-Host "$sftpVolume backup file sync check succeeded"
+            Write-Host "$ftpVolume backup file sync check succeeded"
         }
     }
     }
@@ -200,7 +196,6 @@ try {
 
 # Cleanup and report success or failure
 try {
-    $SFTPSession | Remove-SFTPSession >$Return.SessionCleanup
     if ($FailCount -eq 0) {
         Write-Host " 
 _________________________________
