@@ -41,26 +41,31 @@ $myDays = '-' + $Days
 $myDate = Get-Date
 $ReportPath = $env:RMMFolder + "\Reports"
 $ReportFile = $ReportPath + "\pccReport-MsiActivity.html"
+$NoEvents = "`n***** No Events Found *****"
 
-# Create a header for the report
+# Create a HTML header for the report
 $ReportTitle = @"
 <h1><span style="color: #0000ff;">MSI Installer Changes ($myDays days)</span></h1>
 <p><span style="color: #333333;"><em>Report Generated $myDate</em></span></p>
 "@
 
-# Format the output for the table
+# Format the HTML output for the table
 $InstalledHead = '<table cellspacing="2" cellpadding="4"><caption><h2><span style="color: #008000;">Software Installed</span></h2></caption>'
 
-# Format the output for the table
+# Format the HTML output for the table
 $UninstalledHead = '<table cellspacing="2" cellpadding="4"><caption><h2><span style="color: #ff0000;">Software Uninstalled</span></h2></caption>'
 
 # Get a list of installed software and turn it into an HTML table. Then apply formatting.
-$InstalledSoftware = Get-EventLog -LogName Application -After ((Get-Date).AddDays($myDays)) -Source MsiInstaller -InstanceId 11707 -ErrorAction SilentlyContinue | `
-Select @{L='Date/Time';E={$_.TimeWritten}},@{L='Software Package';E={$_.Message -replace ".*Product: " -replace " -- Install.*"}},@{L='User Name';E={$_.UserName}} | `
-Sort-Object TimeWritten | ConvertTo-Html -Fragment
-
-if ($InstalledSoftware.Count -le '2') {
-    $InstalledSoftware = @"
+$InstalledSoftware = Get-EventLog -LogName Application -After ($myDate.AddDays($myDays)) -Source MsiInstaller -InstanceId 11707 -ErrorAction SilentlyContinue | `
+    Select-Object @{L='Date/Time';E={$_.TimeWritten}},@{L='Software Package';E={$_.Message -replace ".*Product: " -replace " -- Install.*"}},@{L='User Name';E={$_.UserName}} | `
+    Sort-Object 'Date/Time'
+$InstalledSoftwareHTML = $InstalledSoftware | ConvertTo-Html -Fragment
+if ($InstalledSoftware.Count -eq '0') {
+    $InstalledSoftware = $NoEvents
+}
+$InstalledSoftwareOut = $InstalledSoftware | Format-Table -AutoSize -Wrap | Out-String
+if ($InstalledSoftwareHTML.Count -le '2') {
+    $InstalledSoftwareHTML = @"
 $InstalledHead
 <colgroup><col /><col /><col /></colgroup>
 <tr><th>Date/Time</th><th>Software Package</th><th>User Name</th></tr>
@@ -70,16 +75,20 @@ $InstalledHead
 }
 
 else {
-    $InstalledSoftware = $InstalledSoftware -replace '<table>', $InstalledHead
+    $InstalledSoftwareHTML = $InstalledSoftwareHTML -replace '<table>', $InstalledHead
 }
 
 # Get a list of uninstalled software and turn it into an HTML table. Then apply formatting.
-$UninstalledSoftware = Get-EventLog -LogName Application -After ((Get-Date).AddDays($myDays)) -Source MsiInstaller -InstanceId 11727 -ErrorAction SilentlyContinue | `
-Select @{L='Date/Time';E={$_.TimeWritten}},@{L='Software Package';E={$_.Message -replace ".*Product: " -replace " -- Install.*"}},@{L='User Name';E={$_.UserName}} | `
-Sort-Object TimeWritten | ConvertTo-Html -Fragment
-
-if ($UninstalledSoftware.Count -le '2') {
-    $UninstalledSoftware = @"
+$UninstalledSoftware = Get-EventLog -LogName Application -After ($myDate.AddDays($myDays)) -Source MsiInstaller -InstanceId 11727 -ErrorAction SilentlyContinue | `
+    Select-Object @{L='Date/Time';E={$_.TimeWritten}},@{L='Software Package';E={$_.Message -replace ".*Product: " -replace " -- Removal.*"}},@{L='User Name';E={$_.UserName}} | `
+    Sort-Object 'Date/Time' | Format-Table -AutoSize -Wrap
+$UninstalledSoftwareHTML = $UninstalledSoftware | ConvertTo-Html -Fragment
+if ($UninstalledSoftware.Count -eq '0') {
+    $UninstalledSoftware = $NoEvents
+}
+$UninstalledSoftwareOut = $UninstalledSoftware | Format-Table -AutoSize -Wrap | Out-String
+if ($UninstalledSoftwareHTML.Count -le '2') {
+    $UninstalledSoftwareHTML = @"
 $UninstalledHead
 <colgroup><col /><col /><col /></colgroup>
 <tr><th>Date/Time</th><th>Software Package</th><th>User Name</th></tr>
@@ -89,16 +98,29 @@ $UninstalledHead
 }
 
 else {
-    $UninstalledSoftware = $UninstalledSoftware -replace '<table>', $UninstalledHead
+    $UninstalledSoftwareHTML = $UninstalledSoftwareHTML -replace '<table>', $UninstalledHead
 }
 
-# Generate the HTML for output
+# Generate output for dashboard
 $Output = @"
+MSI Installer Changes ($myDays days)
+Report Generated $myDate
+------------------------------------------
+
+MSI Install Events
+$InstalledSoftwareOut
+------------------------------------------
+MSI Uninstall Events
+$UninstalledSoftwareOut
+"@
+
+# Generate the HTML for output
+$OutputHTML = @"
 $ReportTitle
-$InstalledSoftware
+$InstalledSoftwareHTML
 <p>&nbsp;&nbsp;</p>
-$UninstalledSoftware
+$UninstalledSoftwareHTML
 "@
 
 Write-Host $Output
-Out-File -FilePath $ReportFile -InputObject $Output -Force
+Out-File -FilePath $ReportFile -InputObject $OutputHTML -Force
