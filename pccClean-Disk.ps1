@@ -26,38 +26,35 @@ $subkeys      = Get-ChildItem -Path $strKeyPath -Name
     try
     { 
         ForEach($subkey in $subkeys){
-            $null = New-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName -PropertyType DWord `
-                -Value 2 -ErrorAction SilentlyContinue -WarningAction SilentlyContinue }
+            $null = New-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName -PropertyType DWord -Value 2 }
 
        $Return.AddRegKeys = "Success"
     }
     
-    catch [Exception] { $Return.AddRegKeys = $_.Exception.Message }
+    catch [Exception] { $Return.AddRegKeys = $_.Exception.Message | Format-List | Out-String }
 
 # Try running Disk Cleanup
     
     try
     {
-        Start-Process cleanmgr.exe -ArgumentList "/sagerun:42" -Wait -NoNewWindow `
-            -ErrorAction SilentlyContinue -WarningAction SilentlyContinue -ErrorVariable $Return.CleanMgrError
+        Start-Process cleanmgr.exe -ArgumentList "/sagerun:42" -Wait -NoNewWindow
 
-        $Return.RunCleanup = "Success"
+        $Return.RunCleanup = "Running cleanmgr.exe"
     }
     
-    catch [Exception] { $Return.RunCleanup = $_.Exception.Message }
+    catch [Exception] { $Return.RunCleanup = $_.Exception.Message | Format-List | Out-String }
 
 # Try removing the registry keys
     
     try
     {
         ForEach($subkey in $subkeys){
-            $null = Remove-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName `
-                -ErrorAction SilentlyContinue -WarningAction SilentlyContinue }
+            $null = Remove-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName }
         
         $Return.DelRegKeys = "Success" 
     }
 
-    catch [Exception] { $Return.DelRegKeys = $_.Exception.Message }
+    catch [Exception] { $Return.DelRegKeys = $_.Exception.Message | Format-List | Out-String }
 
  return $Return
 
