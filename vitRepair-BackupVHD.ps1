@@ -260,17 +260,36 @@ try {
         $Return.VHD_Repair_Results = ''     
         # Work thorugh list building a list of VHD files
         foreach ($item in $Return.Windows_Image_Backups) {
+            # Mount the VHD
             $Return.VHD_Mount_Results += VHD-Mount -VhdType $VHDMethod -Path $item | Out-String
             # Get the drive letter
-            $myDrive = (Get-DiskImage $item | Get-Disk | Get-Partition | `
-              Select-Object DriveLetter).DriveLetter | Select-Object -Last 1
-            # Add a colon
-            $myDrive = $myDrive + ':'
-            #Make some pretty output
-            $Return.VHD_Repair_Results += "`n---------------------------`n"
-            $Return.VHD_Repair_Results += "Starting disk check on $myDrive`n"
-            $Return.VHD_Repair_Results += "---------------------------`n`n"
-            $Return.VHD_Repair_Results += . CHKDSK.exe $myDrive /F | Out-String
+            $myDrives = (Get-DiskImage $item | Get-Disk | Get-Partition | `
+             Where-Object IsOffline -EQ $false |Select-Object DriveLetter).DriveLetter
+            # Make sure there is something there, if not, try to assign a drive letter
+            if (!($myDrives)) {
+                # Assign drive letters
+                Get-DiskImage -ImagePath $item | Get-Disk | Get-Partition | `
+                 Where-Object IsOffline -EQ $False | Add-PartitionAccessPath -AssignDriveLetter
+                # Try getting $myDrives again
+                $myDrives = (Get-DiskImage $item | Get-Disk | Get-Partition | `
+                 Where-Object IsOffline -EQ $false |Select-Object DriveLetter).DriveLetter
+                # Test $myDrives again
+                if (!($myDrives)) {
+                    $Return."$item" = "Unable to assign drive letter to VHD"
+                    $Return.Error_Count++
+                }
+            }
+            # Can be multiple partitions in a VHD, loop through them
+            foreach ($myDrive in $myDrives) {
+                # Add a colon
+                $myDrive = $myDrive + ':'
+                #Make some pretty output
+                $Return.VHD_Repair_Results += "`n---------------------------`n"
+                $Return.VHD_Repair_Results += "Starting disk check on $myDrive`n"
+                $Return.VHD_Repair_Results += "---------------------------`n`n"
+                $Return.VHD_Repair_Results += . CHKDSK.exe $myDrive /F | Out-String
+            }
+            # Dismount the VHD
             $Return.VHD_Mount_Results += VHD-Dismount -VhdType $VHDMethod -Path $item | Out-String
         }
     }
