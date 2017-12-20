@@ -257,41 +257,49 @@ try {
     if (!($Return.Windows_Image_Backups -eq 'No Windows 7 image backups found')) {
         # Store the results
         $Return.VHD_Mount_Results = ''
-        $Return.VHD_Repair_Results = ''     
+        $Return.VHD_Repair_Results = ''
+        $myDrives = @()     
         # Work thorugh list building a list of VHD files
         foreach ($item in $Return.Windows_Image_Backups) {
             # Mount the VHD
             $Return.VHD_Mount_Results += VHD-Mount -VhdType $VHDMethod -Path $item | Out-String
+        }
+        # Make sure the drive have drive letters and put the list in $myDrives
+        foreach ($item in $Return.Windows_Image_Backups) {
             # Get the drive letter
-            $myDrives = (Get-DiskImage $item | Get-Disk | Get-Partition | `
-             Where-Object IsOffline -EQ $false |Select-Object DriveLetter).DriveLetter
+            $DrivesList = (Get-DiskImage $item | Get-Disk | Get-Partition | `
+             Where-Object IsOffline -EQ $false).DriveLetter
             # Make sure there is something there, if not, try to assign a drive letter
-            if (!($myDrives)) {
+            if (!($DrivesList)) {
                 # Assign drive letters
                 Get-DiskImage -ImagePath $item | Get-Disk | Get-Partition | `
                  Where-Object IsOffline -EQ $False | Add-PartitionAccessPath -AssignDriveLetter
-                # Try getting $myDrives again
-                $myDrives = (Get-DiskImage $item | Get-Disk | Get-Partition | `
-                 Where-Object IsOffline -EQ $false |Select-Object DriveLetter).DriveLetter
-                # Test $myDrives again
-                if (!($myDrives)) {
+                # Try getting $DrivesList again
+                $DrivesList = (Get-DiskImage $item | Get-Disk | Get-Partition | `
+                 Where-Object IsOffline -EQ $false).DriveLetter
+                # Test $DrivesList again
+                if (!($DrivesList)) {
                     $Return."$item" = "Unable to assign drive letter to VHD"
                     $Return.Error_Count++
                 }
             }
-            # Can be multiple partitions in a VHD, loop through them
-            foreach ($myDrive in $myDrives) {
-                # Add a colon
-                $myDrive = $myDrive + ':'
-                #Make some pretty output
-                $Return.VHD_Repair_Results += "`n---------------------------`n"
-                $Return.VHD_Repair_Results += "Starting disk check on $myDrive`n"
-                $Return.VHD_Repair_Results += "---------------------------`n`n"
-                $Return.VHD_Repair_Results += . CHKDSK.exe $myDrive /F | Out-String
-            }
+            $myDrives += $DrivesList
+        }   
+        # Check each mounted drive
+        foreach ($myDrive in $myDrives) {
+            # Add a colon
+            $myDrive = $myDrive + ':'
+            #Make some pretty output
+            $Return.VHD_Repair_Results += "`n---------------------------`n"
+            $Return.VHD_Repair_Results += "Starting disk check on $myDrive`n"
+            $Return.VHD_Repair_Results += "---------------------------`n`n"
+            $Return.VHD_Repair_Results += . CHKDSK.exe $myDrive /F /X | Out-String
+        }
+        foreach ($item in $Return.Windows_Image_Backups) {
             # Dismount the VHD
             $Return.VHD_Mount_Results += VHD-Dismount -VhdType $VHDMethod -Path $item | Out-String
         }
+            
     }
 }
 catch {
