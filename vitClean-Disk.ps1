@@ -84,28 +84,47 @@ catch {
 }
 # END REGION
 
+# REGION Get Windows version for new disk cleanup options
+try {
+    $myInfo = Get-ComputerInfo
+    $Return.Product_Information = $myInfo.WindowsProductName
+    $Return.Product_Version = $myInfo.WindowsCurrentVersion
+}
+catch {
+    $myException = $_.Exception | Format-List | Out-String
+    $Return.Version_Catch = $myException 
+    $Return.Error_Count++ 
+}
+# END REGION
+
 # REGION Run Disk Cleanup
 try
     {
-    # Registry key information for Disk Cleanup
-    $strKeyPath   = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches"
-    $strValueName = "StateFlags0042"
-    $subkeys      = Get-ChildItem -Path $strKeyPath -Name
-    
-    # Set all options to run in registry
-    ForEach($subkey in $subkeys) {
-        $null = New-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName -PropertyType DWord -Value 2
+    # If Windows version is 10, do this the easy way
+    if ($Return.Product_Version -like "10.*") {
+        $Return.Disk_Cleanup_Result = Start-Process -FilePath $DiskCleanPath -ArgumentList "/verylowdisk" -Wait -NoNewWindow | Out-String
     }
-    $Return.Registry_Keys_Update = "Success"
-    
-    # Run Disk Cleanup
-    $Return.Disk_Cleanup_Result = Start-Process -FilePath $DiskCleanPath -ArgumentList "/sagerun:42" -Wait -NoNewWindow | Out-String
-    
-    #Remove the registry keys
-    ForEach($subkey in $subkeys) {
-        $null = Remove-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName
+    else {
+        # Registry key information for Disk Cleanup
+        $strKeyPath   = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches"
+        $strValueName = "StateFlags0042"
+        $subkeys      = Get-ChildItem -Path $strKeyPath -Name
+        
+        # Set all options to run in registry
+        ForEach($subkey in $subkeys) {
+            $null = New-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName -PropertyType DWord -Value 2
+        }
+        $Return.Registry_Keys_Update = "Success"
+        
+        # Run Disk Cleanup
+        $Return.Disk_Cleanup_Result = Start-Process -FilePath $DiskCleanPath -ArgumentList "/sagerun:42" -Wait -NoNewWindow | Out-String
+        
+        #Remove the registry keys
+        ForEach($subkey in $subkeys) {
+            $null = Remove-ItemProperty -Path $strKeyPath\$subkey -Name $strValueName
+        }
+            $Return.Registry_Keys_Delete = "Success"
     }
-        $Return.Registry_Keys_Delete = "Success"
 }
 catch { 
     $myException = $_.Exception | Format-List | Out-String
