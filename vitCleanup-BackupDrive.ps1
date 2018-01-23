@@ -10,7 +10,7 @@
 .EXAMPLE
    vitCleanup-BackupDrive
 .EXAMPLE
-   vitCleanup-BackupDrive -Drive "X:" -FileDays "30" -ShadowStorage "75%"
+   vitCleanup-BackupDrive -Drive "X:" -FileDays "30" -ShadowStorage "25%"
 .OUTPUTS
    Error file if needed and removes files
 .EMAIL
@@ -37,7 +37,7 @@ param (
     # Resize Shadow Copy storage to this percent to delete old backups
     [Parameter()]
     [string]
-    $ShadowStorage = '75%',
+    $ShadowStorage = '25%',
 
 	# Make sure -logfile is NOT positional
 	[Parameter(Mandatory=$false)]
