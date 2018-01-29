@@ -86,9 +86,9 @@ catch {
 
 # REGION Get Windows version for new disk cleanup options
 try {
-    $myInfo = Get-ComputerInfo
-    $Return.Product_Information = $myInfo.WindowsProductName
-    $Return.Product_Version = $myInfo.WindowsCurrentVersion
+    $myInfo = Get-WmiObject -Class Win32_OperatingSystem
+    $Return.Product_Information = $myInfo.Caption
+    $Return.Product_Version = $myInfo.Version
 }
 catch {
     $myException = $_.Exception | Format-List | Out-String
