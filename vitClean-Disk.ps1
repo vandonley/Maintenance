@@ -102,7 +102,7 @@ try
     {
     # If Windows version is 10, do this the easy way
     if ($Return.Product_Version -like "10.*") {
-        $Return.Disk_Cleanup_Result = Start-Process -FilePath $DiskCleanPath -ArgumentList "/verylowdisk" -Wait -NoNewWindow | Out-String
+        $Return.Disk_Cleanup_Result = Start-Process -FilePath $DiskCleanPath -ArgumentList '/verylowdisk' | Out-String
     }
     else {
         # Registry key information for Disk Cleanup
@@ -117,7 +117,7 @@ try
         $Return.Registry_Keys_Update = "Success"
         
         # Run Disk Cleanup
-        $Return.Disk_Cleanup_Result = Start-Process -FilePath $DiskCleanPath -ArgumentList "/sagerun:42" -Wait -NoNewWindow | Out-String
+        $Return.Disk_Cleanup_Result = Start-Process -FilePath $DiskCleanPath -ArgumentList "/sagerun:42" -NoNewWindow | Out-String
         
         #Remove the registry keys
         ForEach($subkey in $subkeys) {
