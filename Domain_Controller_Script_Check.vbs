@@ -27,5 +27,6 @@ If Not strError = "" Then
 wscript.echo strError
 wscript.quit(2001)
 Else
+wscript.echo "No errors found"
 wscript.quit(0)
 End If
