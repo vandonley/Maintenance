@@ -196,7 +196,9 @@ try {
             $DeleteDays = (Get-Date).AddDays($myDays)
             # Delete the files
             $Return.Removed_Backup_Files = Get-ChildItem -Path $myPath -Recurse | `
-                Where-Object -Property 'LastWriteTime' -LT $DeleteDays | Remove-Item -Force | Out-String
+                Where-Object -Property 'LastWriteTime' -LT $DeleteDays | `
+                Sort-Object -Property 'FullName' -Descending | `
+                Remove-Item -Recurse -Force | Out-String
         }
     }
     # Cleanup Windows image backups
