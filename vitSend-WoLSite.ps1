@@ -65,30 +65,30 @@ try {
         # Make sure MACList is populated
         if ($MACList) {
             # Create the broadcast address
-            $BroadcastÂ =Â ([System.Net.IPAddress]::Broadcast)
+            $Broadcast = ([System.Net.IPAddress]::Broadcast)
             # Create IP endpoints for each port
-            $IPEndPoint1Â =Â New-ObjectÂ Net.IPEndPointÂ $Broadcast, 0
-            $IPEndPoint2Â =Â New-ObjectÂ Net.IPEndPointÂ $Broadcast, 7
-            $IPEndPoint3Â =Â New-ObjectÂ Net.IPEndPointÂ $Broadcast, 9
+            $IPEndPoint1 = New-Object Net.IPEndPoint $Broadcast, 0
+            $IPEndPoint2 = New-Object Net.IPEndPoint $Broadcast, 7
+            $IPEndPoint3 = New-Object Net.IPEndPoint $Broadcast, 9
             # Send the packets
             foreach ($MAC in $MACList) {
                 # Format the MAC
                 $MAC = $MAC -replace '-',''
                 $MAC = $MAC -replace ':',''
                 # Change string to byte array
-                $MACÂ =Â [Net.NetworkInformation.PhysicalAddress]::Parse($MAC)
+                $MAC = [Net.NetworkInformation.PhysicalAddress]::Parse($MAC)
                 # Create the magic packet
                 # Construct the Magic Packet frame
-                $FrameÂ =Â [byte[]]@(255,255,255,Â 255,255,255);
-                $FrameÂ +=Â ($MAC.GetAddressBytes()*16)
+                $Frame = [byte[]]@(255,255,255, 255,255,255);
+                $Frame += ($MAC.GetAddressBytes()*16)
                 # Send the packet
                 $UDPClient = New-Object System.Net.Sockets.UdpClient
                 # Number of times to send the packet
                 $AttemptCount = (1..3)
                 foreach ($i in $AttemptCount) {
-                    $UdpClient.Send($Frame,Â $Frame.Length,Â $IPEndPoint1)Â |Â Out-Null
-                    $UdpClient.Send($Frame,Â $Frame.Length,Â $IPEndPoint2)Â |Â Out-Null
-                    $UdpClient.Send($Frame,Â $Frame.Length,Â $IPEndPoint3)Â |Â Out-Null
+                    $UdpClient.Send($Frame, $Frame.Length, $IPEndPoint1) | Out-Null
+                    $UdpClient.Send($Frame, $Frame.Length, $IPEndPoint2) | Out-Null
+                    $UdpClient.Send($Frame, $Frame.Length, $IPEndPoint3) | Out-Null
                     Start-Sleep -Seconds 1
                 }
                 $UDPClient.Close()
