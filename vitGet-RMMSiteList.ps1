@@ -13,7 +13,7 @@
    1.0
 #>
 #Your API key
-$APIKey = "My API Key"
+$APIKey = "MyAPIKey"
 # URL to retrieve client list
 $ClientURL = "https://www.hound-dog.us/api/?apikey=$APIKey&service=list_clients"
 # Date for the CSV file
