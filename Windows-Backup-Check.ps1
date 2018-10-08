@@ -1,5 +1,5 @@
 $after = [datetime]::Now.AddDays(-1)
-$logs = Get-WinEvent Microsoft-Windows-Backup | Where { $_.TimeCreated -ge $after }
+$logs = Get-WinEvent Microsoft-Windows-Backup | Where-Object { $_.TimeCreated -ge $after }
 if (!($logs)) {
 Write-Host "No backup events found!"
 Exit 1001
