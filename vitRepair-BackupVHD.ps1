@@ -40,7 +40,7 @@ param (
 )
 
 # REGION VHD Functions
-#Mount the VHD
+# Mount the VHD
 function VHD-Mount {
     param (
     # Old for 2008, New for 2012+
@@ -180,6 +180,8 @@ _______________________________
     else {
         # Return success
         $Return.Carbon_Test = 'Carbon v{0}' -f $CarbonInstallCheck.Version
+        # Import Carbon module
+        Import-Module -Name 'Carbon'
     }
 }
 catch {
