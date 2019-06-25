@@ -227,7 +227,7 @@ try {
                 $myScriptPath = $env:TEMP + "\CleanupDiskshadow.dsh"
                 Out-File -FilePath $myScriptPath $myDiskshadowScript -Force
                 # Delete the oldest server image backup
-                $Return.$myDiskshadowReturn = . Diskshadow.exe /s $myScriptPath | Out-String 
+                $Return.$myDiskshadowReturn = . Diskshadow.exe /s -InputObject $myScriptPath | Out-String 
                 # Delete the script file
                 Remove-Item -Path $myScriptPath -Force           
             }
