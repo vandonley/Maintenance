@@ -225,7 +225,7 @@ try {
                 # Create the script for Diskshadow.exe
                 $myDiskshadowScript = "delete shadows oldest $item"
                 $myScriptPath = $env:TEMP + "\CleanupDiskshadow.dsh"
-                Out-File -FilePath $myScriptPath $myDiskshadowScript -Force
+                Out-File -FilePath $myScriptPath -InputObject $myDiskshadowScript -Force
                 # Delete the oldest server image backup
                 $Return.$myDiskshadowReturn = . Diskshadow.exe /s -InputObject $myScriptPath | Out-String 
                 # Delete the script file
